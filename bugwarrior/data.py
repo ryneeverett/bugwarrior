@@ -1,5 +1,5 @@
 import os
-import json
+import dbm
 
 
 DATAFILE = os.path.expanduser(
@@ -8,19 +8,12 @@ DATAFILE = os.path.expanduser(
 
 def get(key):
     try:
-        with open(DATAFILE, 'r') as jsondata:
-            data = json.load(jsondata)
-            return data[key]
-    except IOError:  # File does not exist.
+        with dbm.open(DATAFILE) as db:
+            return db.get(key)
+    except dbm.error:  # File does not exist.
         return None
 
 
 def set(key, value):
-    try:
-        with open(DATAFILE, 'rw') as jsondata:
-            data = json.load(jsondata)
-            data[key] = value
-            json.dump(data, jsondata)
-    except IOError:  # File does not exist.
-        with open(DATAFILE, 'w+') as jsondata:
-            json.dump({key: value}, jsondata)
+    with dbm.open(DATAFILE, 'c') as db:
+        db[key] = value
