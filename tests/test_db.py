@@ -43,27 +43,32 @@ class TestMergeLeft(unittest.TestCase):
 
 class TestSynchronize(ConfigTest):
 
+    def setUp(self):
+        super().setUp()
+
+        self.config = configparser.RawConfigParser()
+        self.config.add_section('general')
+        self.config.set('general', 'targets', 'my_service')
+        self.config.set('general', 'static_fields', 'project, priority')
+        self.config.add_section('my_service')
+        self.config.set('my_service', 'service', 'github')
+
+        self.tw = taskw.TaskWarrior(self.taskrc)
+
+    @staticmethod
+    def _get_tasks(tw):
+        tasks = tw.load_tasks()
+
+        # Remove non-deterministic keys.
+        del tasks['pending'][0]['modified']
+        del tasks['pending'][0]['entry']
+        del tasks['pending'][0]['uuid']
+
+        return tasks
+
     def test_synchronize(self):
-
-        def get_tasks(tw):
-            tasks = tw.load_tasks()
-
-            # Remove non-deterministic keys.
-            del tasks['pending'][0]['modified']
-            del tasks['pending'][0]['entry']
-            del tasks['pending'][0]['uuid']
-
-            return tasks
-
-        config = configparser.RawConfigParser()
-        config.add_section('general')
-        config.set('general', 'targets', 'my_service')
-        config.set('general', 'static_fields', 'project, priority')
-        config.add_section('my_service')
-        config.set('my_service', 'service', 'github')
-
-        tw = taskw.TaskWarrior(self.taskrc)
-        self.assertEqual(tw.load_tasks(), {'completed': [], 'pending': []})
+        self.assertEqual(
+            self.tw.load_tasks(), {'completed': [], 'pending': []})
 
         issue = {
             'description': 'Blah blah blah. ☃',
@@ -80,9 +85,9 @@ class TestSynchronize(ConfigTest):
             # writing out to taskwarrior.
             # https://github.com/ralphbean/bugwarrior/issues/601
             issue_generator = iter((issue, issue,))
-            db.synchronize(issue_generator, config, 'general')
+            db.synchronize(issue_generator, self.config, 'general')
 
-            self.assertEqual(get_tasks(tw), {
+            self.assertEqual(self._get_tasks(self.tw), {
                 'completed': [],
                 'pending': [{
                     u'project': u'sample_project',
@@ -101,9 +106,9 @@ class TestSynchronize(ConfigTest):
         # Change static field
         issue['project'] = 'other_project'
 
-        db.synchronize(iter((issue,)), config, 'general')
+        db.synchronize(iter((issue,)), self.config, 'general')
 
-        self.assertEqual(get_tasks(tw), {
+        self.assertEqual(self._get_tasks(self.tw), {
             'completed': [],
             'pending': [{
                 u'priority': u'M',
@@ -117,9 +122,9 @@ class TestSynchronize(ConfigTest):
             }]})
 
         # TEST CLOSED ISSUE.
-        db.synchronize(iter(()), config, 'general')
+        db.synchronize(iter(()), self.config, 'general')
 
-        tasks = tw.load_tasks()
+        tasks = self.tw.load_tasks()
 
         # Remove non-deterministic keys.
         del tasks['completed'][0]['modified']
@@ -138,7 +143,35 @@ class TestSynchronize(ConfigTest):
                 u'status': u'completed',
                 u'urgency': 4.9,
             }],
-             'pending': []})
+            'pending': []})
+
+    @unittest.skip('https://github.com/ralphbean/bugwarrior/issues/733')
+    def test_synchronize_depends_description(self):
+        """ https://github.com/ralphbean/bugwarrior/issues/733 """
+        issue = {
+            'description': 'depends filter does not work with IDs',
+            'project': 'sample_project',
+            'githubtype': 'issue',
+            'githuburl': 'https://example.com',
+            'priority': 'M',
+        }
+
+        issue_generator = iter((issue,))
+        db.synchronize(issue_generator, self.config, 'general')
+
+        self.assertEqual(self._get_tasks(self.tw), {
+            'completed': [],
+            'pending': [{
+                u'project': u'sample_project',
+                u'priority': u'M',
+                u'status': u'pending',
+                u'description': u'depends filter does not work with IDs',
+                u'githuburl': u'https://example.com',
+                u'githubtype': u'issue',
+                u'id': 1,
+                u'urgency': 4.9,
+            }]})
+
 
 class TestUDAs(ConfigTest):
     def test_udas(self):
