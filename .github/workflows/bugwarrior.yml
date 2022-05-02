@@ -56,3 +56,21 @@ jobs:
           matrix.python-version == 3.8 &&
           matrix.jira-version == '2.0.0' &&
           matrix.architecture == 'aarch64'
+  poetry-test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install poetry
+        run: |
+          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - &&
+          source $HOME/.poetry/env
+      - name: Install system dependencies
+        run: apt-get install -qq -y \
+          libffi-dev libssl-dev pandoc python3-pip taskwarrior
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install development environment
+        run: poetry shell
+      - name: Check bugwarrior executable
+        run: bugwarrior --version
+      - name: Run tests
+        run: pytest

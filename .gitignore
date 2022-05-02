@@ -21,3 +21,4 @@ man/*
 .direnv
 .envrc
 pyvenv.cfg
+poetry.lock

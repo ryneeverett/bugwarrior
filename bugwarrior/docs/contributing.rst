@@ -6,6 +6,9 @@ How to Contribute
 Setting up your development environment
 ---------------------------------------
 
+With Pip
+~~~~~~~~
+
 First, make sure you have the necessary :ref:`requirements`.
 
 You should also install the `virtualenv
@@ -38,12 +41,30 @@ Next step -- get the code!
     (bugwarrior)$ cd bugwarrior
     (bugwarrior)$ pip install -e .[all]
     (bugwarrior)$ which bugwarrior
+    (bugwarrior)$ pytest
 
 This will actually run it.. be careful and back up your task directory!
 
 ::
 
     (bugwarrior)$ bugwarrior pull
+
+With Poetry
+~~~~~~~~~~~
+
+First, `install poetry <https://python-poetry.org/docs/#installation>`_.
+
+You can then easily bootstrap a development environment::
+
+    $ git clone git@github.com:ralphbean/bugwarrior.git
+    $ cd bugwarrior
+    $ poetry shell
+
+And verify that it works::
+
+    (bugwarrior)$ which bugwarrior
+    (bugwarrior)$ pytest
+
 
 Making a pull request
 ---------------------
