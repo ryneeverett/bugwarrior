@@ -31,14 +31,25 @@ class testJiraService(ConfigTest):
             'general': {
                 'targets': ['myjira'],
                 'interactive': 'false',
+                'inline_links': 'true',
+                'annotation_comments': 'false',
+                'replace_tags': 'true',
+                'static_tags': ['mgmt', 'tl', 'ic'],
+                'static_fields': ['priority', 'project'],
             },
             'myjira': {
                 'service': 'jira',
                 'base_uri': 'https://example.com',
                 'username': 'milou',
                 'password': 't0ps3cr3t',
+                'import_labels_as_tags': 'false',
+                'import_sprints_as_tags': 'false',
+                'description_template': '{{jiraid}}',
+                'project_template': '',
+                'default_priority': '',
                 'extra_fields': [
                     'jiraextra1:customfield_10000', 'jiraextra2:namedfield.valueinside'],
+                'add_tags': '{{test_field}}',
             },
         }
 
@@ -69,7 +80,9 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
         'username': 'one',
         'base_uri': 'https://two.org',
         'password': 'three',
-        'extra_fields': ['jiraextra1:customfield_10000', 'jiraextra2:namedfield.valueinside'],
+        'extra_fields': ['test_field:customfield_10019'],
+        'description_template': '{{jiraid}}',
+        'add_tags': '{{test_field}}',
     }
 
     arbitrary_estimation = 3600
@@ -91,7 +104,7 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
             'status': {'name': 'Open'},
             'subtasks': [{'key': 'DONUT-%s' % subtask} for subtask in arbitrary_subtask_ids],
             'parent': {'key': f'DONUT-{arbitrary_parent_id}'},
-            'customfield_10000': 'foo',
+            'customfield_10019': 'foo',
             'namedfield': {'valueinside': arbitrary_namedfield_valueinside},
         },
         'key': '%s-%s' % (arbitrary_project, arbitrary_id, ),
@@ -117,8 +130,7 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
         return service
 
     def get_extra_fields(self):
-        return JiraExtraFields.validate(
-            ['jiraextra1:customfield_10000', 'jiraextra2:namedfield.valueinside'])
+        return JiraExtraFields.validate(['test_field:customfield_10019'])
 
     def test_to_taskwarrior(self):
         arbitrary_url = 'http://one'
@@ -147,8 +159,7 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
             'jirastatus': 'Open',
             'jirasubtasks': 'DONUT-11,DONUT-12',
             'jiraparent': 'DONUT-13',
-            'jiraextra1': 'foo',
-            'jiraextra2': 77,
+            'test_field': 'foo',
 
             issue.URL: arbitrary_url,
             issue.FOREIGN_ID: self.arbitrary_record['key'],
@@ -198,8 +209,7 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
             'jirastatus': 'Open',
             'jirasubtasks': 'DONUT-11,DONUT-12',
             'jiraparent': 'DONUT-13',
-            'jiraextra1': 'foo',
-            'jiraextra2': 77,
+            'test_field': 'foo',
 
             issue.URL: arbitrary_url,
             issue.FOREIGN_ID: record_with_goal['key'],
@@ -214,7 +224,7 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
         with mock.patch.object(issue, 'get_url', side_effect=get_url):
             actual_output = issue.to_taskwarrior()
 
-        self.assertEqual(actual_output, expected_output)
+        self.assertEqual(expected_output, actual_output)
 
     def test_issues(self):
         issue = next(self.service.issues())
@@ -222,8 +232,7 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
         expected = {
             'annotations': [],
             'due': None,
-            'description': ('(bw)Is#10 - lkjaldsfjaldf .. '
-                            'https://two.org/browse/DONUT-10'),
+            'description': 'DONUT-10',
             'entry': datetime.datetime(2016, 6, 6, 13, 7, 8, tzinfo=tzutc()),
             'jiradescription': None,
             'jiraestimate': 1,
@@ -235,11 +244,10 @@ class TestJiraIssue(AbstractServiceTest, ServiceTest):
             'jiraurl': 'https://two.org/browse/DONUT-10',
             'jirasubtasks': 'DONUT-11,DONUT-12',
             'jiraparent': 'DONUT-13',
-            'jiraextra1': 'foo',
-            'jiraextra2': 77,
             'priority': 'H',
             'project': 'DONUT',
-            'tags': []}
+            'tags': ['foo'],
+            'test_field': 'foo'}
 
         self.assertEqual(TaskConstructor(issue).get_taskwarrior_record(), expected)
 
