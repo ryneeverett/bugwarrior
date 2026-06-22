@@ -101,7 +101,9 @@ class TestService(ServiceBase):
             def get_keyring_service(config):
                 return f'legacy://{config.target}'
 
-        service_config = ServiceConfig(service='legacy', target='legacy-target')
+        service_config = ServiceConfig(
+            service="__bugwarrior_service_placeholder__", target='legacy-target'
+        )
         with unittest.mock.patch(
             'bugwarrior.config.schema.get_service', lambda _: LegacyService
         ):

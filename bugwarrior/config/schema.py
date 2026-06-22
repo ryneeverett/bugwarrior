@@ -205,7 +205,7 @@ class ServiceConfig(_ServiceConfig):
     KEYRING_SERVICE: typing.ClassVar[str]
 
     # Added before validation (computed field)
-    service: str
+    service: Literal["__bugwarrior_service_placeholder__"]
     target: str
 
     # Added during validation (computed field)
